@@ -4,7 +4,7 @@
 \usepackage{fontawesome}
 
 % То, что в квадратных скобках, отображается внизу по центру каждого слайда. 
-\title[Тестирование библиотек на IMG]{Исследование производительности умножения матриц на графических ускорителях от Imagination Technologies}
+\title[Портирование SynGT]{Инструментальная система эквивалентных преобразований синтаксических диаграмм}
 
 % То, что в квадратных скобках, отображается в левом нижнем углу. 
 \institute[СПбГУ]{}
@@ -23,7 +23,7 @@
 \begin{center}
    \begin{tabular}{c}
         \scriptsize{Санкт-Петербургский государственный университет} \\
-        \scriptsize{Кафедра системного программирования}
+        \scriptsize{Кафедра информатики}
     \end{tabular}
 \titlepage
 \end{center}
@@ -32,7 +32,7 @@
 
 {\scriptsize
   % У научного руководителя должна быть указана научная степень
-   \textbf{Научный руководитель:} С. В. Григорьев, доцент кафедры системного программирования \\
+   \textbf{Научный руководитель:} Л. Н. Федорченко, к. ф.-м. н., доцент кафедры информатики \\
  }
 \begin{center}
   \vspace{5pt}
@@ -46,11 +46,11 @@
 \begin{frame}
     \frametitle{Введение}
     \begin{itemize}
-    \item GEMM — ключевая операция линейной алгебры
-    \item Используется в ML, CV, численных методах
-    \item Производительность зависит от GPU
-    \item OpenCL — кроссплатформенный стандарт
-    \item Актуальность для архитектуры RISC-V
+    \item Формальные грамматики — основа описания синтаксиса языков программирования
+    \item RBNF (Regular Backus-Naur Form) — расширенная форма БНФ с регулярными операторами
+    \item Синтаксические диаграммы (Railroad Diagrams) делают грамматики понятными человеку
+    \item Оригинальная система SynGT реализована на Pascal в конце 1990-х годов
+    \item Устаревшая технологическая база ограничивает использование и развитие системы
   \end{itemize}
 \end{frame}
 
@@ -58,98 +58,188 @@
 % Описание выносимых на защиту результатов, процесса или особенностей их достижения и т.д.
 \begin{frame}
   \frametitle{Постановка задачи}
-  \textbf{Целью} работы является исследование производительности различных реализаций умножения матриц из библиотек MyGEMM и CLBlast на одноплатных компьютерах с архитектурой RISC-V с графическим ускорителем от Imagination Technologies\\   %озвученной выше  
+  \textbf{Целью} работы является портирование инструментальной системы SynGT с языка Pascal на современный язык C++ с сохранением функциональности\\   
+  
   \textbf{Задачи}:
   \begin{itemize}
-    \item Обновление системных пакетов и программного обеспечения
-    \item Провести серию тестов производительности различных ядер библиотеки MyGEMM
-    \item Выполнить процедуру автоматического тюнинга библиотеки CLBlast и провести измерения производительности.
-    \item Провести сравнительный анализ производительности MyGEMM и CLBlast
+    \item Провести анализ исходного кода системы SynGT на Pascal
+    \item Разработать архитектуру портированной системы на C++
+    \item Реализовать библиотеку для разбора RBNF-грамматик и построения граф-схем
+    \item Разработать набор тестов для верификации корректности
+    \item Создать консольное и графическое приложения
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Контекст исследования}
+  \frametitle{Система SynGT}
+  \textbf{Исходная система (Pascal):}
   \begin{itemize}
-      \item GEMM
-      \item CUDA vs OpenCL
-      \item RISC-V и Imagination Technologies
-      \item MyGEMM и CLBlast
+      \item Разработана на Object Pascal (Borland Delphi)
+      \item ~12000 строк кода, 21 модуль компиляции
+      \item Функции: разбор RBNF, визуализация, преобразования грамматик
+      \item Алгоритм размещения с 7 специализированными методами
+      \item Зависимость от VCL (Visual Component Library)
+  \end{itemize}
+  
+  \vspace{0.5cm}
+  
+  \textbf{Проблемы:}
+  \begin{itemize}
+      \item Ограниченная экосистема Pascal
+      \item Windows-only
+      \item Отсутствие модульности и тестов
   \end{itemize}
 \end{frame}
 
 \begin{frame}
-    \frametitle{MyGEMM и CLBlast}
-    \begin{table}[]
-    \centering
-    \begin{tabular}{p{0.45\textwidth}p{0.45\textwidth}}
-    \hline
-    \textbf{MyGEMM} & \textbf{CLBlast} \\
-    \hline
-    Учебная библиотека, демонстрирующая пошаговую оптимизацию & Отпимизированная библиотека для использования в производительных решениях \\
-    \hline
-    11 отдельных ядер с нарастающей сложностью оптимизаций & Единое универсальное ядро с адаптивными параметрами \\
-    \hline
-    Ручная настройка параметров для каждой платформы & Автоматический поиск оптимальных параметров \\
-    \hline
-    Фокус на понимании принципов оптимизации & Фокус на максимальной производительности \\
-    \hline
-    \end{tabular}
-    \end{table}
+    \frametitle{Формат RBNF-грамматик}
+    \textbf{Основные элементы:}
+    \begin{itemize}
+        \item Терминалы: \texttt{'if'}, \texttt{'begin'}, \texttt{'+'}
+        \item Нетерминалы: \texttt{stmt}, \texttt{expr}, \texttt{ID}
+        \item Макросы: \texttt{@list}
+    \end{itemize}
+    
+    \textbf{Операторы:}
+    \begin{itemize}
+        \item Последовательность (,): \texttt{A, B, C}
+        \item Альтернатива (;): \texttt{A ; B ; C}
+        \item Итерация (*): \texttt{@*(A)}
+        \item Группировка: \texttt{(A ; B), C}
+    \end{itemize}
+    
+    \textbf{Пример:}
+    
+    \texttt{expr : term , @*(( '+' ; '-' ) , term).}
 \end{frame}
 
 \begin{frame}
-  \frametitle{Условия эксперимента}
+  \frametitle{Архитектура портированной системы}
+  \textbf{Технологии:}
   \begin{itemize}
-    \item \textbf{Платформы:}
-      \begin{itemize}
-        \item Banana Pi BPI-F3, GPU IMG BXE-2-32
-        \item StarFive VisionFive 2, GPU IMG BXE-4-32 MC1
-        \item Intel Core i9-12900H, GPU Intel Iris Xe Graphics
-      \end{itemize}
-    \item \textbf{Условия тестирования:}
-      \begin{itemize}
-        \item Форк репозитория (\url{https://github.com/stanislavgexrby/myGEMM/tree/develop}) со скриптом \texttt{run\_all\_kernels.sh} для MyGEMM
-        \item Репозиторий (\url{https://github.com/vkutuev/matrix-benchmark/tree/main}) со скриптами \texttt{benchmark.sh} и \texttt{conf.sh} для CLBlast
-      \end{itemize}
-    \item \textbf{Параметры тестирования:}
-      \begin{itemize}
-        \item Наборы параметров TS, TSM, TSN в диапазоне 8--32, 32--128 для MyGEMM
-        \item Атоматический подбор параметров и размер матриц из набора 512--7680 для CLBlast
-      \end{itemize}
-    \item \textbf{Измеряемые метрики:}
-      \begin{itemize}
-        \item Время исполнения каждого ядра без учета задержек загрузки
-      \end{itemize}
-  \end{itemize}  
-\end{frame}
-
-
-\begin{frame}
-    \frametitle{Результаты MyGEMM}
-    \centering
-    \includegraphics[scale=0.3]{pictures/comparison_best_results.png}
+    \item Язык: C++17 (ISO/IEC 14882:2017)
+    \item Система сборки: CMake 3.20+
+    \item GUI Framework: Dear ImGui с DirectX 11 backend
+    \item Тестирование: Google Test 1.14.0
+  \end{itemize}
+  
+  \vspace{0.3cm}
+  
+  \textbf{Компоненты:}
+  \begin{itemize}
+    \item \textbf{libsyngt} — основная библиотека (независимая от GUI)
+    \item \textbf{syngt\_cli} — консольное приложение
+    \item \textbf{syngt\_gui} — графическое приложение
+    \item \textbf{tests} — модульные тесты (18 тестовых модулей)
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
-    \frametitle{Результаты CLBlast}
-    \centering
-    \includegraphics[scale=0.3]{pictures/clblast_time_comparison.png}
+    \frametitle{Структура библиотеки libsyngt}
+    \textbf{Модули:}
+    \begin{itemize}
+        \item \textbf{Core} — базовые классы (Grammar, TerminalList, NonTerminalList)
+        \item \textbf{Regex} — иерархия классов регулярных выражений (RETree, REAnd, REOr, REIteration)
+        \item \textbf{Parser} — рекурсивный спуск для разбора RBNF
+        \item \textbf{Graphics} — классы для графических объектов диаграмм
+        \item \textbf{Transform} — преобразования грамматик (устранение левой рекурсии, факторизация)
+        \item \textbf{Analysis} — анализ грамматик (LL(1), FIRST/FOLLOW)
+    \end{itemize}
+    
+    \vspace{0.3cm}
+    
+    \textbf{Итого:} 70 файлов (~7700 строк кода)
 \end{frame}
 
 \begin{frame}
-    \frametitle{Сранение MyGEMM и CLBlast}
-    \centering
-    \includegraphics[scale=0.45]{pictures/mygemm_vs_clblast.png}
+    \frametitle{Алгоритм визуализации}
+    \textbf{Упрощение по сравнению с оригиналом:}
+    \begin{itemize}
+        \item Оригинал: 7 взаимосвязанных методов размещения
+        \item Портирование: единый метод \texttt{drawObjectsToRight} для каждого типа узла
+    \end{itemize}
+    
+    \vspace{0.3cm}
+    
+    \textbf{Подход:}
+    \begin{itemize}
+        \item \textbf{AND} (последовательность): горизонтальное размещение
+        \item \textbf{OR} (альтернатива): вертикальное разветвление с точками схождения
+        \item \textbf{Iteration}: цикл с обратной стрелкой
+    \end{itemize}
+    
+    \vspace{0.3cm}
+    
+    \textbf{Преимущества:}
+    \begin{itemize}
+        \item Независимость от GUI-фреймворка
+        \item Корректная визуализация всех базовых конструкций RBNF
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Графическое приложение}
+    \textbf{Возможности:}
+    \begin{itemize}
+        \item Текстовый редактор RBNF-грамматик с синтаксическим разбором
+        \item Визуализация синтаксических диаграмм
+        \item Интерактивное редактирование: перемещение, выделение объектов
+        \item Преобразования: устранение левой рекурсии, левая факторизация
+        \item Анализ: проверка LL(1), вычисление FIRST/FOLLOW
+        \item Система Undo/Redo
+        \item Загрузка/сохранение грамматик
+    \end{itemize}
+    
+    \vspace{0.3cm}
+    
+    \textbf{Технологии:} Dear ImGui, DirectX 11 (Windows)
+\end{frame}
+
+\begin{frame}
+  \frametitle{Метрики}
+  \begin{center}
+  \begin{tabular}{|l|c|c|}
+  \hline
+  \textbf{Компонент} & \textbf{Файлы} & \textbf{Строк кода} \\
+  \hline
+  Библиотека libsyngt & 70 & ~7700 \\
+  Консольное приложение & 1 & ~400 \\
+  Графическое приложение & 1 & ~600 \\
+  Модульные тесты & 18 & ~1800 \\
+  \hline
+  \textbf{Всего} & \textbf{92} & \textbf{~10700} \\
+  \hline
+  \end{tabular}
+  \end{center}
+  
+  \vspace{0.5cm}
+  
+  \textbf{Сравнение с оригиналом:}
+  \begin{itemize}
+      \item Pascal: ~12000 строк (без GUI), 0 тестов, Windows only
+      \item C++: ~7700 строк (библиотека), 18 тестовых модулей, кросс-платформенность
+  \end{itemize}
 \end{frame}
 
 \begin{frame}
   \frametitle{Результаты}
   \begin{itemize}
-    \item Библиотека MyGEMM адаптирована для работы на платформах Imagination Technologies с учётом аппаратного ограничения размера рабочей группы в 512 потоков
-    \item Проведено тестирование с 100 прогонами для каждой конфигурации на матрицах $1024 \times 1024$ элементов для библиотеки MyGEMM, результаты проанализированы
-    \item Для библиотеки CLBlast выполнен автоматический тюнинг с анализом результатов до и после на тестируемых платформах
-    \item Проведен сравнительный анализ этих двух библиотек
+    \item Успешно портирована система SynGT с Pascal на C++17
+    \item Создана модульная архитектура с разделением логики и представления
+    \item Реализована библиотека libsyngt для работы с RBNF-грамматиками
+    \item Разработаны консольное и графическое приложения
+    \item Создан набор из 18 тестовых модулей (100\% прохождения)
+    \item Обеспечена кросс-платформенность (Windows, Linux, macOS)
+    \item Код доступен в репозитории: \url{https://github.com/stanislavgexrby/vkr}
+  \end{itemize}
+  
+  \vspace{0.3cm}
+  
+  \textbf{Дальнейшие направления:}
+  \begin{itemize}
+      \item Расширение поддержки RBNF-конструкций
+      \item Экспорт в SVG/PDF
+      \item Веб-версия системы
   \end{itemize}
 \end{frame}
 %\addtocounter{framenumber}{1}
