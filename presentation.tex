@@ -1,0 +1,156 @@
+\documentclass[aspectratio=169]{beamer}
+\input{preamble.tex}
+
+\usepackage{fontawesome}
+
+% То, что в квадратных скобках, отображается внизу по центру каждого слайда. 
+\title[Тестирование библиотек на IMG]{Исследование производительности умножения матриц на графических ускорителях от Imagination Technologies}
+
+% То, что в квадратных скобках, отображается в левом нижнем углу. 
+\institute[СПбГУ]{}
+
+% То, что в квадратных скобках, отображается в левом нижнем углу.
+\author[Пучкин Станислав]{Пучкин Станислав Андреевич, группа 23.Б08-мм}
+ 
+\begin{document}
+{
+\setbeamertemplate{footline}{}
+% Лого университета или организации, отображается в шапке титульного листа
+\begin{frame}
+  \includegraphics[width=1.4cm]{pictures/SPbGU_Logo.png}
+\vspace{-35pt}
+\hspace{-10pt}
+\begin{center}
+   \begin{tabular}{c}
+        \scriptsize{Санкт-Петербургский государственный университет} \\
+        \scriptsize{Кафедра системного программирования}
+    \end{tabular}
+\titlepage
+\end{center}
+
+\btVFill
+
+{\scriptsize
+  % У научного руководителя должна быть указана научная степень
+   \textbf{Научный руководитель:} С. В. Григорьев, доцент кафедры системного программирования \\
+ }
+\begin{center}
+  \vspace{5pt}
+  \scriptsize{Санкт-Петербург\\
+                 2025}
+  \end{center}
+
+\end{frame}
+}
+
+\begin{frame}
+    \frametitle{Введение}
+    \begin{itemize}
+    \item GEMM — ключевая операция линейной алгебры
+    \item Используется в ML, CV, численных методах
+    \item Производительность зависит от GPU
+    \item OpenCL — кроссплатформенный стандарт
+    \item Актуальность для архитектуры RISC-V
+  \end{itemize}
+\end{frame}
+
+% Обязательный слайд: четкая формулировка цели данной работы и постановка задачи
+% Описание выносимых на защиту результатов, процесса или особенностей их достижения и т.д.
+\begin{frame}
+  \frametitle{Постановка задачи}
+  \textbf{Целью} работы является исследование производительности различных реализаций умножения матриц из библиотек MyGEMM и CLBlast на одноплатных компьютерах с архитектурой RISC-V с графическим ускорителем от Imagination Technologies\\   %озвученной выше  
+  \textbf{Задачи}:
+  \begin{itemize}
+    \item Обновление системных пакетов и программного обеспечения
+    \item Провести серию тестов производительности различных ядер библиотеки MyGEMM
+    \item Выполнить процедуру автоматического тюнинга библиотеки CLBlast и провести измерения производительности.
+    \item Провести сравнительный анализ производительности MyGEMM и CLBlast
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Контекст исследования}
+  \begin{itemize}
+      \item GEMM
+      \item CUDA vs OpenCL
+      \item RISC-V и Imagination Technologies
+      \item MyGEMM и CLBlast
+  \end{itemize}
+\end{frame}
+
+\begin{frame}
+    \frametitle{MyGEMM и CLBlast}
+    \begin{table}[]
+    \centering
+    \begin{tabular}{p{0.45\textwidth}p{0.45\textwidth}}
+    \hline
+    \textbf{MyGEMM} & \textbf{CLBlast} \\
+    \hline
+    Учебная библиотека, демонстрирующая пошаговую оптимизацию & Отпимизированная библиотека для использования в производительных решениях \\
+    \hline
+    11 отдельных ядер с нарастающей сложностью оптимизаций & Единое универсальное ядро с адаптивными параметрами \\
+    \hline
+    Ручная настройка параметров для каждой платформы & Автоматический поиск оптимальных параметров \\
+    \hline
+    Фокус на понимании принципов оптимизации & Фокус на максимальной производительности \\
+    \hline
+    \end{tabular}
+    \end{table}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Условия эксперимента}
+  \begin{itemize}
+    \item \textbf{Платформы:}
+      \begin{itemize}
+        \item Banana Pi BPI-F3, GPU IMG BXE-2-32
+        \item StarFive VisionFive 2, GPU IMG BXE-4-32 MC1
+        \item Intel Core i9-12900H, GPU Intel Iris Xe Graphics
+      \end{itemize}
+    \item \textbf{Условия тестирования:}
+      \begin{itemize}
+        \item Форк репозитория (\url{https://github.com/stanislavgexrby/myGEMM/tree/develop}) со скриптом \texttt{run\_all\_kernels.sh} для MyGEMM
+        \item Репозиторий (\url{https://github.com/vkutuev/matrix-benchmark/tree/main}) со скриптами \texttt{benchmark.sh} и \texttt{conf.sh} для CLBlast
+      \end{itemize}
+    \item \textbf{Параметры тестирования:}
+      \begin{itemize}
+        \item Наборы параметров TS, TSM, TSN в диапазоне 8--32, 32--128 для MyGEMM
+        \item Атоматический подбор параметров и размер матриц из набора 512--7680 для CLBlast
+      \end{itemize}
+    \item \textbf{Измеряемые метрики:}
+      \begin{itemize}
+        \item Время исполнения каждого ядра без учета задержек загрузки
+      \end{itemize}
+  \end{itemize}  
+\end{frame}
+
+
+\begin{frame}
+    \frametitle{Результаты MyGEMM}
+    \centering
+    \includegraphics[scale=0.3]{pictures/comparison_best_results.png}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Результаты CLBlast}
+    \centering
+    \includegraphics[scale=0.3]{pictures/clblast_time_comparison.png}
+\end{frame}
+
+\begin{frame}
+    \frametitle{Сранение MyGEMM и CLBlast}
+    \centering
+    \includegraphics[scale=0.45]{pictures/mygemm_vs_clblast.png}
+\end{frame}
+
+\begin{frame}
+  \frametitle{Результаты}
+  \begin{itemize}
+    \item Библиотека MyGEMM адаптирована для работы на платформах Imagination Technologies с учётом аппаратного ограничения размера рабочей группы в 512 потоков
+    \item Проведено тестирование с 100 прогонами для каждой конфигурации на матрицах $1024 \times 1024$ элементов для библиотеки MyGEMM, результаты проанализированы
+    \item Для библиотеки CLBlast выполнен автоматический тюнинг с анализом результатов до и после на тестируемых платформах
+    \item Проведен сравнительный анализ этих двух библиотек
+  \end{itemize}
+\end{frame}
+%\addtocounter{framenumber}{1}
+\end{document}
